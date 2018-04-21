@@ -10,7 +10,7 @@ config.add_option('-D', '--dev', dest='dev_file', type='string', help='evaluatio
 class DataSet(object):
     def __init__(self, filename, vocabs = None):
         self._filename = filename
-        self._vocabs = vocabs if vocabs else [WordVocab()]
+        self._vocabs = vocabs if vocabs else [WordVocab(), LemmaVocab(), TagVocab(), PredictVocab(), SemTagVocab()]
         self._establish_vocab()
         self._data = []
         self._read_data(self._filename, self._data)
@@ -37,7 +37,7 @@ class DataSet(object):
             for line_num, line in enumerate(f):
                 try:
                     line = line.strip()
-                    if (line == '' or line.startswith('#') or line.startswith('1')) and len(sentence):
+                    if (line == '' or line.startswith('#') or line.startswith('1\t')) and len(sentence):
                         yield sentence
                         sentence = []
                     if line and not line.startswith('#'):
@@ -45,7 +45,7 @@ class DataSet(object):
                         self.format_check(line)
                         sentence.append(line)
                 except:
-                    raise ValueError('File %s is misformatted at line %d' % (conll_file, line_num + 1))
+                    raise ValueError('File %s is misformatted at line %d' % (filename, line_num + 1))
             else:
                 if not len(sentence):
                     yield sentence

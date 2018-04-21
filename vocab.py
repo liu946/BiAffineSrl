@@ -178,7 +178,7 @@ class CaseAbleVocab(UnkableVocab):
         return super().__contains__(key)
 
 class WordVocab(CaseAbleVocab):
-    min_occur_count = 1
+    min_occur_count = 2
     _conll_idx = 1
 class LemmaVocab(UnkableVocab):
     _conll_idx = 2
