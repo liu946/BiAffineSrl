@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 import codecs
 import config
+import torch
 from vocab import WordVocab, LemmaVocab, TagVocab, PredictVocab, SemTagVocab
+from vocab import IllegalSampleError
 config.add_option('-T', '--train', dest='train_file', type='string', help='train data file', action='store')
 config.add_option('-D', '--dev', dest='dev_file', type='string', help='evaluation data file', action='store')
 
@@ -11,6 +13,8 @@ class DataSet(object):
     def __init__(self, filename, vocabs = None):
         self._filename = filename
         self._vocabs = vocabs if vocabs else [WordVocab(), LemmaVocab(), TagVocab(), PredictVocab(), SemTagVocab()]
+        self._input_vocabs = self.vocabs[:-1]
+        self._target_vocabs = [self.vocabs[-1]]
         self._establish_vocab()
         self._data = []
         self._read_data(self._filename, self._data)
@@ -29,7 +33,15 @@ class DataSet(object):
 
     def _read_data(self, filename, empty_data_array):
         for sentence in self.iter_sentence(filename):
-            empty_data_array.append([vocab.index(sentence) for vocab in self.vocabs])
+            try:
+                empty_data_array.append({
+                    'inputs': [torch.LongTensor(vocab.index(sentence)) for vocab in self._input_vocabs],
+                    'targets': [torch.LongTensor(vocab.index(sentence)) for vocab in self._target_vocabs]
+                })
+            except IllegalSampleError:
+                continue
+            except RuntimeError:
+                continue
 
     def iter_sentence(self, filename):
         with codecs.open(filename, encoding='utf-8') as f:
@@ -47,7 +59,7 @@ class DataSet(object):
                 except:
                     raise ValueError('File %s is misformatted at line %d' % (filename, line_num + 1))
             else:
-                if not len(sentence):
+                if len(sentence):
                     yield sentence
         return None
 
@@ -73,6 +85,11 @@ class TrainDataSet(object):
         self.dev_file = config.get_option('dev_file')
         self._train_set = DataSet(self.train_file)
         self._dev_set = DataSet(self.dev_file, self._train_set.vocabs)
+
+    def get_set(self, phase):
+        if not phase in ['train', 'dev']:
+            raise KeyError('%s is not a valid subset of TrainDataSet')
+        return self.__getattribute__('_%s_set' % phase)
 
     @property
     def vocabs(self):

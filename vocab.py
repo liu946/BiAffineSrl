@@ -9,6 +9,11 @@ import math
 
 config.add_option('--recount', dest='recount', default=False, help='If there need to be recount the vocab', action='store_true')
 
+
+class IllegalSampleError(RuntimeError):
+    pass
+
+
 class BaseVocab(object):
     _special_tokens = []
     min_occur_count = 0
@@ -216,6 +221,8 @@ class SentenceLevelVocab(BaseVocab):
 
     def index(self, sentence):
         super().index(sentence)
+        if len(sentence[0][self._conll_idx]) == 0:
+            raise IllegalSampleError()
         return numpy.array([[self.convert(token) for token in tokens[self._conll_idx]] for tokens in sentence])
 
 class SemTagVocab(SentenceLevelVocab):
